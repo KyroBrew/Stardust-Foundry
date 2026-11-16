@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stardust Foundry</title>
+<meta name="description" content="Stardust Foundry: a pixel space clicker. Crack planets, smash shards, build a fleet, and risk the core.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%AA%90%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#e4e9f6;--panel:#f6f8fd;--ink:#0e1433;--dim:#566087;--accent:#0a7f86;--gold:#9a5a00;--line:#bcc6e4;--star:#3a4a8a;--btn:#ffffff;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;--bg:#080c22;--panel:#10173a;--ink:#f1ead8;--dim:#9aa4cf;--accent:#5fe3d2;--gold:#ffbe5c;--line:#26306a;--star:#f1ead8;--btn:#161e4a;}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#080c22;--panel:#10173a;--ink:#f1ead8;--dim:#9aa4cf;--accent:#5fe3d2;--gold:#ffbe5c;--line:#26306a;--star:#f1ead8;--btn:#161e4a;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);font-size:20px}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:VT323,"Courier New",monospace;line-height:1.2;min-height:100vh;overflow-x:hidden}
+#sky{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+main{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:800px){main{grid-template-columns:minmax(0,5fr) minmax(0,6fr);align-items:start;padding:28px}}
+h1,h2,.count,.stagename,.pop{font-family:"Press Start 2P","Courier New",monospace;font-weight:400}
+h1{font-size:.7rem;line-height:1.5;margin:0 0 14px;text-shadow:3px 3px 0 var(--line)}
+h2{font-size:.6rem;margin:0 0 12px}
+.stage{text-align:center;padding:8px 0}
+.count{font-size:clamp(1rem,5.5vw,1.6rem);color:var(--gold);line-height:1.3;text-shadow:3px 3px 0 var(--line)}
+.sub{color:var(--dim);margin-top:2px}
+.world{position:relative;width:min(88vw,400px);margin:8px auto}
+#arena{display:block;width:100%;aspect-ratio:1;image-rendering:pixelated;touch-action:manipulation;cursor:pointer;filter:hue-rotate(var(--hue,0deg))}
+.shake{animation:shake .3s steps(6)}
+@keyframes shake{25%{transform:translate(5px,-4px)}50%{transform:translate(-5px,4px)}75%{transform:translate(3px,3px)}}
+.pop{position:absolute;pointer-events:none;font-size:.5rem;color:var(--gold);text-shadow:2px 2px 0 #000;animation:rise .9s steps(7) forwards;z-index:3;white-space:nowrap}
+@keyframes rise{to{transform:translateY(-70px);opacity:0}}
+.stagename{font-size:.55rem;margin-top:6px;line-height:1.5}
+.hint{color:var(--dim);margin-top:6px}
+.stats{display:flex;justify-content:center;gap:18px;color:var(--dim);margin-top:8px;flex-wrap:wrap}
+.buff{color:var(--accent);min-height:1.4em;margin-top:6px}
+.panel{background:var(--panel);border:4px solid var(--line);padding:14px;box-shadow:6px 6px 0 rgba(0,0,0,.4)}
+.list{display:grid;gap:8px}
+.item,.btn{all:unset;box-sizing:border-box;cursor:pointer;color:var(--ink);padding:8px 10px;border:3px solid var(--line);box-shadow:3px 3px 0 rgba(0,0,0,.4);background:var(--btn)}
+.item{display:grid;grid-template-columns:1fr auto;gap:2px 10px}
+.item:focus-visible,.btn:focus-visible{outline:2px solid var(--accent)}
+.item[disabled]{opacity:.5;cursor:not-allowed}
+.item:not([disabled]):hover,.btn:hover{border-color:var(--accent)}
+.item:not([disabled]):active,.btn:active{transform:translate(3px,3px);box-shadow:0 0 0 #000}
+.item .d{grid-column:1;color:var(--dim);font-size:.9rem}
+.item .c{grid-column:2;grid-row:1;color:var(--gold);text-align:right}
+.item .o{grid-column:2;grid-row:2;color:var(--dim);font-size:.9rem;text-align:right}
+.ups{margin-bottom:16px}.ups .list{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.empty{color:var(--dim)}
+footer{display:flex;gap:10px;justify-content:space-between;align-items:center;color:var(--dim);margin-top:12px}
+footer button{all:unset;cursor:pointer;text-decoration:underline;padding:4px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:grid;place-items:center;z-index:20;padding:16px}
+.box{width:min(92vw,440px);text-align:center}
+.box p{margin:10px 0}.box b{color:var(--gold)}
+.row{display:flex;gap:12px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.btn{text-align:center;min-width:140px}
+.btn.risk{background:#8a2f22;color:#fff3e0;border-color:#ff8a3d}
+#admin{background:none;pointer-events:none}#admin .box{pointer-events:auto}
+#gres{min-height:1.4em;color:var(--accent)}
+#toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel);border:3px solid var(--accent);padding:10px 16px;box-shadow:4px 4px 0 rgba(0,0,0,.5);z-index:30;opacity:0;pointer-events:none;max-width:90vw;text-align:center}
+#toast.on{opacity:1}
+.comet{all:unset;position:fixed;left:-140px;z-index:5;cursor:pointer;animation:fly steps(80,end) forwards}
+.comet:focus-visible{outline:2px solid var(--accent)}
+@keyframes fly{to{transform:translateX(calc(100vw + 300px))}}
+.fall{animation:fall 1.4s cubic-bezier(.5,0,1,.6) forwards}
+@keyframes fall{to{transform:translateY(125vh) rotate(var(--rot,8deg));opacity:.2}}
+.back{animation:back .6s steps(5)}
+@keyframes back{from{opacity:0}}
+@media(prefers-reduced-motion:reduce){.pop{animation:none;opacity:0}.shake{animation:none}.comet{animation:none;left:calc(50% - 60px)}.fall{animation:none;opacity:0}.back{animation:none}}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+  <section class="stage">
+    <h1>Stardust Foundry</h1>
+    <div class="count" id="dust">0</div>
+    <div class="sub">stardust · <span id="rate">0</span> per second</div>
+    <div class="world" id="world"><canvas id="arena" width="96" height="96" aria-label="Planet: click to crack it open, then click the pieces"></canvas></div>
+    <div class="stagename" id="stage">Barren Rock</div>
+    <div class="hint" id="hint">Click the planet to crack it open.</div>
+    <button class="btn" id="next" style="margin-top:10px" hidden>Move to next planet</button>
+    <div class="stats"><span>Per click: <b id="cp">1</b></span><span>Clicks: <b id="clicks">0</b></span><span>All-time: <b id="total">0</b></span></div>
+    <div class="buff" id="buff"></div>
+  </section>
+  <section>
+    <div class="panel ups"><h2>Research</h2><div class="list" id="ups"></div></div>
+    <div class="panel"><h2>Fleet</h2><div class="list" id="gens"></div>
+      <footer><span id="fnote">Progress saves automatically.</span><button id="reset">Reset game</button></footer>
+    </div>
+  </section>
+</main>
+<div class="modal" id="gamble" hidden>
+  <div class="panel box">
+    <h2>The Core</h2>
+    <p>It hums. You could stake <b>everything</b>.</p>
+    <p>Win (<b id="godds">5%</b>): your <b id="gstake">0</b> stardust becomes <b id="gwin">0</b>.</p>
+    <p>Lose: you lose <b>EVERYTHING</b>. Stardust, upgrades, fleet, clicks and this planet.</p>
+    <div id="gres"></div>
+    <div class="row"><button class="btn risk" id="gyes">Risk it all</button><button class="btn" id="gno">Walk away</button></div>
+  </div>
+</div>
+<div class="modal" id="admin" hidden>
+  <div class="panel box" style="max-height:90vh;overflow:auto">
+    <h2 id="ahead" style="cursor:move;touch-action:none;user-select:none">Admin Panel</h2>
+    <div class="list" id="adm" style="grid-template-columns:1fr 1fr"></div>
+    <div class="row"><button class="btn" id="aclose">Close</button></div>
+  </div>
+</div>
+<canvas id="fxc" aria-hidden="true" style="position:fixed;inset:0;width:100%;height:100%;z-index:25;pointer-events:none"></canvas>
+<div id="toast" role="status"></div>
+<script>
+(function(){
+var GENS=[
+ {n:"Probe",d:"Scans rocks and scoops dust.",b:15,r:0.1},
+ {n:"Mining Drone",d:"Cracks asteroids open.",b:100,r:1},
+ {n:"Asteroid Rig",d:"Anchored drill platform.",b:1100,r:8},
+ {n:"Moon Base",d:"A crew that never sleeps.",b:12000,r:47},
+ {n:"Orbital Foundry",d:"Smelts dust in zero-g.",b:130000,r:260},
+ {n:"Dyson Swarm",d:"Harvests a whole star.",b:1400000,r:1400},
+ {n:"Wormhole Gate",d:"Pulls dust from other galaxies.",b:20000000,r:7800},
+ {n:"Black Hole Siphon",d:"Drinks light from a dead star.",b:330000000,r:44000},
+ {n:"Galaxy Harvester",d:"Reaps entire spiral arms.",b:5100000000,r:260000},
+ {n:"Universe Engine",d:"Turns spacetime into dust.",b:75000000000,r:1600000}
+];
+var UPS=[
+ {id:"laser",n:"Laser Drill",d:"Clicks are twice as strong.",c:100,k:"click",m:2},
+ {id:"plasma",n:"Plasma Cutter",d:"Clicks are twice as strong.",c:1500,k:"click",m:2},
+ {id:"sails",n:"Solar Sails",d:"Fleet output ×1.5.",c:5000,k:"prod",m:1.5},
+ {id:"anti",n:"Antimatter Pick",d:"Clicks are three times as strong.",c:25000,k:"click",m:3},
+ {id:"core",n:"Quantum Core",d:"Fleet output ×2.",c:200000,k:"prod",m:2},
+ {id:"lens",n:"Gravity Lens",d:"Fleet output ×2.",c:5000000,k:"prod",m:2},
+ {id:"seis",n:"Seismic Charges",d:"Planets need half the clicks to crack.",c:800,k:"crack",m:2},
+ {id:"magnet",n:"Shard Magnet",d:"Shards pay ×2.",c:3000,k:"shard",m:2},
+ {id:"clover",n:"Lucky Asteroid",d:"Lucky strikes twice as likely.",c:50000,k:"luck",m:2},
+ {id:"salv",n:"Salvage Rights",d:"Planet-clear bonus ×2.",c:100000,k:"bonus",m:2},
+ {id:"fault",n:"Fault Lines",d:"Planets need half the clicks again.",c:400000,k:"crack",m:2},
+ {id:"frag",n:"Fragment Lens",d:"Shards pay ×3.",c:8000000,k:"shard",m:3},
+ {id:"fort",n:"Fortune Field",d:"Lucky strikes twice as likely.",c:30000000,k:"luck",m:2},
+ {id:"neut",n:"Neutron Pick",d:"Clicks are four times as strong.",c:100000000,k:"click",m:4},
+ {id:"dme",n:"Dark Matter Engine",d:"Fleet output ×2.",c:200000000,k:"prod",m:2},
+ {id:"crkr",n:"Planet Cracker",d:"Planet-clear bonus ×3.",c:500000000,k:"bonus",m:3},
+ {id:"void",n:"Void Hammer",d:"Clicks are five times as strong.",c:5000000000,k:"click",m:5},
+ {id:"forge",n:"Stellar Forge",d:"Fleet output ×3.",c:10000000000,k:"prod",m:3},
+ {id:"tloop",n:"Time Loop",d:"Fleet output ×5.",c:500000000000,k:"prod",m:5}
+];
+UPS.sort(function(a,b){return a.c-b.c});
+var STAGES=[[0,"Barren Rock",0],[1e3,"Mining Outpost",40],[5e4,"Industrial World",110],[1e6,"Dyson Hub",190],[1e8,"Galactic Core",270]];
+var MS=[
+ [150,"Incoming transmission: “Nice rock. Is it for sale?” (unsigned)"],
+ [1e3,"Your probes found a hum coming from inside the planet."],
+ [1e4,"A rival foundry two systems over sent a very polite warning."],
+ [1e5,"Transmission: “Please stop pointing the lasers at our moon.”"],
+ [1e6,"Your Dyson Hub has drawn the attention of something very old."],
+ [1e7,"The hum from the planet now sounds like it’s humming back."],
+ [1e9,"A message from the future: “Keep clicking. It matters.”"]
+];
+var KEY="stardust-foundry-v1",ODDS=0.05;
+function fresh(){return {dust:0,total:0,clicks:0,planet:1,own:GENS.map(function(){return 0}),up:[],seen:Date.now()}}
+var S=fresh();
+function $(i){return document.getElementById(i)}
+try{var raw=localStorage.getItem(KEY);if(raw){var L=JSON.parse(raw);if(L&&typeof L.dust==="number"){S=L;while(S.own.length<GENS.length)S.own.push(0);if(!S.up)S.up=[];if(!S.planet)S.planet=1}}}catch(e){}
+
+var SUF=["","K","M","B","T","Qa","Qi","Sx","Sp"];
+function fmt(n){if(n<1000)return n<10&&n%1?n.toFixed(1):Math.floor(n).toString();var i=Math.min(SUF.length-1,Math.floor(Math.log10(n)/3));return (n/Math.pow(1000,i)).toFixed(2)+SUF[i]}
+function has(id){return S.up.indexOf(id)>-1}
+function mult(k){var m=1;UPS.forEach(function(u){if(u.k===k&&has(u.id))m*=u.m});return m}
+var BF={ck:1,cu:0,pk:1,pu:0},AM=1;
+function rate(){var r=0;GENS.forEach(function(g,i){r+=g.r*S.own[i]});return r*mult("prod")*BF.pk}
+function clickPow(){return (1+rate()*0.01)*mult("click")*BF.ck*AM}
+function cost(i){return Math.ceil(GENS[i].b*Math.pow(1.15,S.own[i]))}
+
+var toast=$("toast"),tt;
+function say(t){toast.textContent=t;toast.className="on";clearTimeout(tt);tt=setTimeout(function(){toast.className=""},3500)}
+
+var gensEl=$("gens"),upsEl=$("ups"),gEls=[],uEls={};
+GENS.forEach(function(g,i){
+  var b=document.createElement("button");b.className="item";
+  b.innerHTML='<span class="n">'+g.n+'</span><span class="c"></span><span class="d">'+g.d+'</span><span class="o"></span>';
+  b.onclick=function(){var c=cost(i);if(S.dust>=c){S.dust-=c;S.own[i]++;draw()}};
+  gensEl.appendChild(b);gEls.push(b);
+});
+UPS.forEach(function(u){
+  var b=document.createElement("button");b.className="item";
+  b.innerHTML='<span class="n">'+u.n+'</span><span class="c">'+fmt(u.c)+'</span><span class="d">'+u.d+'</span>';
+  b.onclick=function(){if(!has(u.id)&&S.dust>=u.c){S.dust-=u.c;S.up.push(u.id);draw()}};
+  upsEl.appendChild(b);uEls[u.id]=b;
+});
+var emptyUps=document.createElement("div");emptyUps.className="empty";emptyUps.textContent="All research complete.";emptyUps.hidden=true;upsEl.appendChild(emptyUps);
+
+function draw(){
+  $("dust").textContent=fmt(S.dust);
+  $("rate").textContent=fmt(rate());
+  $("cp").textContent=fmt(clickPow());
+  $("clicks").textContent=fmt(S.clicks);
+  $("total").textContent=fmt(S.total);
+  var st=STAGES[0];STAGES.forEach(function(s){if(S.total>=s[0])st=s});
+  $("stage").textContent=pname(S.planet)+" · "+(S.planet>198?"":TN[TY]+" · ")+S.planet+"/200";
+  
+  GENS.forEach(function(g,i){
+    var el=gEls[i],c=cost(i);
+    el.disabled=S.dust<c;
+    el.querySelector(".c").textContent=fmt(c);
+    el.querySelector(".o").textContent="Owned: "+S.own[i]+(S.own[i]?" · "+fmt(g.r*S.own[i]*mult("prod"))+"/s":"");
+  });
+  var left=0;
+  UPS.forEach(function(u){var el=uEls[u.id];if(has(u.id)){el.hidden=true;return}left++;el.hidden=false;el.disabled=S.dust<u.c});
+  emptyUps.hidden=left>0;
+}
+
+/* ---- pixel planet, shards and core ---- */
+var AR=$("arena"),ax=AR.getContext("2d"),SZ=96,C=48,worldEl=$("world");
+var PAL=["#2a1230","#5c2440","#9c4a3c","#d9703f","#ffb870","#ffe2ae"],sd=7,NZ=[],RING=true,PR=27,NO=0,RC=["#c98a4f","#e8b970","#ffe2ae"],TY=0,HU=0,CR=[],TN=["Rocky World","Gas Giant","Ocean World","Ice World","Lava World","Cratered Moon","Storm Giant","Crystal World"];
+function rnd(){sd=(sd*16807)%2147483647;return sd/2147483647}
+for(var ny=0;ny<SZ;ny++){NZ[ny]=[];for(var nx=0;nx<SZ;nx++)NZ[ny][nx]=rnd()}
+var pcv=document.createElement("canvas");pcv.width=pcv.height=SZ;var pl=pcv.getContext("2d");
+function ringPass(front){
+  if(!RING)return;var ca=Math.cos(-0.25),sa=Math.sin(-0.25),x,y,dx,dy,u,v,o,n;
+  for(y=0;y<SZ;y++)for(x=0;x<SZ;x++){
+    dx=x+.5-C;dy=y+.5-C;u=dx*ca+dy*sa;v=-dx*sa+dy*ca;
+    if((v>0)!==front)continue;
+    o=u*u/1764+v*v/144;n=u*u/1024+v*v/77;
+    if(o<=1&&n>=1){pl.fillStyle=o>.8?RC[0]:((x+y)&1?RC[1]:RC[2]);pl.fillRect(x,y,1,1)}
+  }
+}
+function paintPlanet(){
+  var x,y,dx,dy,d,R=PR,nz,l;
+  ringPass(false);
+  for(y=0;y<SZ;y++)for(x=0;x<SZ;x++){
+    dx=x+.5-C;dy=y+.5-C;d=Math.sqrt(dx*dx+dy*dy);
+    if(d>R)continue;
+    nz=Math.sqrt(1-d*d/(R*R));l=-0.5*dx/R-0.6*dy/R+0.62*nz+(NZ[(y+NO)%SZ][(x+NO*2)%SZ]-.5)*.3;
+    pl.fillStyle=surf(x,y,dx,dy,R,l);pl.fillRect(x,y,1,1);
+  }
+  ringPass(true);
+}
+paintPlanet();
+
+var chunks=[],state="whole",hits=0,HP=8,cracks=[];
+function need(){return Math.max(1,Math.ceil(HP/mult("crack")))}
+function surf(x,y,dx,dy,R,l){
+  var n=NZ[(y+NO)%SZ][(x+NO*2)%SZ],i=Math.max(0,Math.min(5,Math.floor((l+.1)*5.5))),v=dy/R,k,c,dd;
+  if(TY===1||TY===6){
+    k=Math.floor(v*6+n*1.5)&1;i=Math.max(0,Math.min(5,i+(k?1:-1)));
+    if(TY===6&&Math.pow(dx-R*.25,2)/60+Math.pow(dy-R*.3,2)/22<1)return "hsl("+((HU+180)%360)+",70%,"+(28+i*9)+"%)";
+  }else if(TY===2){return n<.52?"hsl(210,60%,"+(12+i*9)+"%)":"hsl("+(90+n*50)+",45%,"+(12+i*8)+"%)"}
+  else if(TY===3){return Math.abs(v)>.68?"hsl(200,40%,"+(60+i*7)+"%)":n>.93?"hsl(210,60%,92%)":"hsl(200,55%,"+(22+i*9)+"%)"}
+  else if(TY===4){return n<.2?"hsl("+(15+n*100)+",100%,"+(45+n*90)+"%)":"hsl(15,25%,"+(4+i*6)+"%)"}
+  else if(TY===5){
+    i=Math.max(0,Math.min(5,i+Math.floor((n-.5)*2)));
+    for(c=0;c<CR.length;c++){dd=Math.hypot(dx-CR[c][0],dy-CR[c][1]);if(dd<CR[c][2]){i=dd>CR[c][2]-1.3?Math.min(5,i+2):Math.max(0,i-2);break}}
+    return "hsl(0,0%,"+(12+i*11)+"%)";
+  }else if(TY===7){k=(Math.floor((dx+60)/5)+Math.floor((dy+60)/5))&1;i=Math.max(0,Math.min(5,i+(k?1:-1)))}
+  return PAL[i];
+}
+function pname(n){
+  var A=["Kepler","Orion","Vega","Lyra","Draco","Cygnus","Aries","Nova","Zeta","Helix","Argo","Talos","Mira","Altair","Pyxis","Ceti"];
+  if(n===199)return "Supernova SN-199";
+  if(n===200)return "The Black Hole";
+  return A[(n*7)%A.length]+"-"+((n*13)%97+3)+String.fromCharCode(98+n%5);
+}
+function applyPlanet(){
+  var n=S.planet,h=(n*47+20)%360,s=45+(n*13)%35;
+  RING=n%6===1;PR=24+(n%4)*2;NO=(n*37)%SZ;HP=8;TY=(n+7)%8;HU=h;CR=[];
+  if(TY===5)for(var j=0;j<7;j++)CR.push([((n*17+j*29)%40)-20,((n*23+j*41)%40)-20,3+((n+j*5)%5)]);
+  RC=["hsl("+h+","+s+"%,40%)","hsl("+h+","+s+"%,60%)","hsl("+h+","+s+"%,82%)"];
+  PAL=[10,22,34,48,64,82].map(function(l,i){return "hsl("+(h+i*5)+","+(s+(i>2?10:0))+"%,"+l+"%)"});
+  pl.clearRect(0,0,SZ,SZ);
+  if(n===199){TY=0;PAL=["#3a0a0a","#8a1c10","#e03c10","#ff8a20","#ffd24a","#fff6d0"];RING=false;PR=26;HP=16;paintPlanet()}
+  else if(n===200){
+    TY=0;PAL=["#000","#000","#020204","#040408","#08080f","#0e0e18"];RING=true;PR=17;HP=30;RC=["#ff6a1a","#ffb347","#fff0c8"];
+    paintPlanet();PAL=["#07070d","#161628","#2a2a4a","#40407a","#6a5aa8","#b9a6ff"];
+  }else paintPlanet();
+}
+function fx(t){
+  var n=S.planet,k,r,d,x,y;
+  if(n===199){
+    for(k=0;k<2;k++){
+      r=((t/45)+k*23)%46;ax.fillStyle="rgba(255,190,90,"+(0.85-r/60)+")";
+      for(y=0;y<SZ;y++)for(x=0;x<SZ;x++){d=Math.hypot(x-C,y-C);if(Math.abs(d-r-26)<1.3&&((x+y)&1)===0)ax.fillRect(x,y,1,1)}
+    }
+  }else if(n===200){
+    ax.fillStyle="rgba(185,166,255,.7)";r=21+Math.sin(t/400)*1.5;
+    for(y=0;y<SZ;y++)for(x=0;x<SZ;x++){d=Math.hypot(x-C,y-C);if(Math.abs(d-r)<1.1&&((x+y)&1)===0)ax.fillRect(x,y,1,1)}
+  }
+}
+applyPlanet();
+function shakeIt(){AR.classList.remove("shake");void AR.offsetWidth;AR.classList.add("shake")}
+function addCrack(x,y){
+  var a=Math.random()*6.283,px=x,py=y,n=8+hits*3,i;
+  for(i=0;i<n;i++){a+=(Math.random()-.5)*1.2;px+=Math.cos(a);py+=Math.sin(a);
+    if(Math.hypot(px-C,py-C)<27)cracks.push([Math.round(px),Math.round(py)])}
+}
+function drawCracks(){ax.fillStyle="#1a0a1c";cracks.forEach(function(p){ax.fillRect(p[0],p[1],2,1)})}
+function setHint(){$("next").hidden=state==="whole"||anim;$("hint").textContent=state==="whole"?(S.planet===199?"SUPERNOVA! ":S.planet===200?"THE BLACK HOLE! ":"")+"Keep clicking the planet to break it open ("+hits+"/"+need()+").":"Click shards to smash them. Smaller shards pay less. Click the glowing core to gamble."}
+function pop(t,x,y){
+  var s=document.createElement("span");s.className="pop";s.textContent=t;
+  s.style.left=(x/SZ*100)+"%";s.style.top=(y/SZ*100)+"%";
+  worldEl.appendChild(s);setTimeout(function(){s.remove()},900);
+}
+function earn(v,x,y){
+  var lucky=Math.random()<0.03*mult("luck");if(lucky)v*=10;
+  S.dust+=v;S.total+=v;S.clicks++;pop((lucky?"★ ":"")+"+"+fmt(v),x,y);
+}
+function mk(x,y,vx,vy,r){return {x:x,y:y,vx:vx,vy:vy,r:r,s:Math.floor(Math.random()*SZ)}}
+function crack(){
+  state="cracked";setHint();
+  for(var i=0;i<5;i++){var a=i/5*6.283+Math.random()*0.6;chunks.push(mk(C+Math.cos(a)*10,C+Math.sin(a)*10,Math.cos(a)*1.4,Math.sin(a)*1.4,12))}
+  AR.classList.remove("shake");void AR.offsetWidth;AR.classList.add("shake");
+}
+function smash(c){
+  chunks.splice(chunks.indexOf(c),1);
+  earn(clickPow()*c.r/6*mult("shard"),c.x,c.y);
+  if(c.r*0.68>=4){for(var k=0;k<2;k++){var a=Math.random()*6.283;chunks.push(mk(c.x,c.y,Math.cos(a)*1.6,Math.sin(a)*1.6,c.r*0.68))}}
+  if(!chunks.length){
+    var b=Math.max(rate()*20,clickPow()*10)*(S.planet===200?30:1)*mult("bonus");S.dust+=b;S.total+=b;S.planet=Math.min(200,S.planet+1);
+    state="whole";hits=0;cracks=[];applyPlanet();setHint();say("Planet cleared! A new one forms. +"+fmt(b)+" bonus.");
+  }
+  draw();
+}
+AR.addEventListener("pointerdown",function(e){if(anim)return;
+  var rc=AR.getBoundingClientRect(),x=(e.clientX-rc.left)/rc.width*SZ,y=(e.clientY-rc.top)/rc.height*SZ,i,c;
+  if(state==="whole"){if(Math.hypot(x-C,y-C)<=29){earn(clickPow()*0.5,x,y);hits++;addCrack(x,y);if(hits>=need())crack();else{shakeIt();setHint()}draw()}return}
+  if(Math.hypot(x-C,y-C)<=8){openGamble();return}
+  for(i=chunks.length-1;i>=0;i--){c=chunks[i];if(Math.hypot(x-c.x,y-c.y)<=c.r+2){smash(c);return}}
+});
+function rock(c){
+  var R=Math.ceil(c.r)+1,x0=Math.floor(c.x),y0=Math.floor(c.y),dx,dy,n,lim,l;
+  for(dy=-R;dy<=R;dy++)for(dx=-R;dx<=R;dx++){
+    n=NZ[(dy+c.s+SZ)%SZ][(dx+c.s*3+SZ)%SZ];lim=c.r*(0.78+0.35*n);
+    if(Math.hypot(dx,dy)>lim)continue;
+    l=-0.55*dx/c.r-0.6*dy/c.r+0.55+(n-.5)*.4;
+    ax.fillStyle=PAL[Math.max(1,Math.min(5,Math.floor((l+.2)*4.5)))];ax.fillRect(x0+dx,y0+dy,1,1);
+  }
+}
+function core(t){
+  var R=6+Math.sin(t/260)*1.2,x,y,d;
+  for(y=-9;y<=9;y++)for(x=-9;x<=9;x++){
+    d=Math.hypot(x,y);
+    if(d<=R)ax.fillStyle=d<R*.4?"#fff6c8":d<R*.75?"#ffd35c":"#ff8a3d";
+    else if(d<=R+2&&((x+y)&1)===0)ax.fillStyle="rgba(255,190,92,.45)";
+    else continue;
+    ax.fillRect(C+x,C+y,1,1);
+  }
+}
+function arenaFrame(t){
+  ax.clearRect(0,0,SZ,SZ);
+  if(state==="heal"){
+    var hk=(performance.now()-healT0)/1000;
+    core(t);
+    chunks.forEach(function(c){c.x+=(C-c.x)*0.07;c.y+=(C-c.y)*0.07;c.r*=0.992;rock(c)});
+    if(hk>1.4){state="whole";chunks=[];cracks=[];hits=0;whole0=performance.now();setHint()}
+    return;
+  }
+  if(state==="whole"){fx(t);ax.globalAlpha=Math.min(1,(performance.now()-whole0)/700);ax.drawImage(pcv,0,0);ax.globalAlpha=1;drawCracks();return}
+  core(t);
+  chunks.forEach(function(c){
+    c.x+=c.vx;c.y+=c.vy;c.vx=c.vx*0.95+(Math.random()-.5)*.03;c.vy=c.vy*0.95+(Math.random()-.5)*.03;
+    if(c.x<c.r){c.x=c.r;c.vx=Math.abs(c.vx)}if(c.x>SZ-c.r){c.x=SZ-c.r;c.vx=-Math.abs(c.vx)}
+    if(c.y<c.r){c.y=c.r;c.vy=Math.abs(c.vy)}if(c.y>SZ-c.r){c.y=SZ-c.r;c.vy=-Math.abs(c.vy)}
+    rock(c);
+  });
+}
+
+$("next").onclick=function(){chunks=[];state="whole";hits=0;cracks=[];S.planet=Math.min(200,S.planet+1);applyPlanet();setHint();say("You moved on to "+pname(S.planet)+".");draw()};
+
+/* ---- gamble animations ---- */
+var anim=false,healT0=0,whole0=0,PX=4,fxc=$("fxc"),fxx=fxc.getContext("2d");
+function fxSize(){fxc.width=Math.ceil(innerWidth/PX);fxc.height=Math.ceil(innerHeight/PX);fxc.style.imageRendering="pixelated"}
+fxSize();addEventListener("resize",fxSize);
+function ctr(){var r=AR.getBoundingClientRect();return [(r.left+r.width/2)/PX,(r.top+r.height/2)/PX]}
+function shakeEl(e){e.classList.remove("shake");void e.offsetWidth;e.classList.add("shake")}
+function playLose(){
+  if(anim)return;
+  anim=true;setHint();
+  var c0=ctr(),W=fxc.width,H=fxc.height,segs=[],i,j,a,x,y,pts,t0=performance.now(),fell=false,s2=false,mn=document.querySelector("main"),els=document.querySelectorAll("main .stage, main .panel");
+  for(i=0;i<16;i++){
+    a=i/16*6.283+Math.random()*.3;x=c0[0];y=c0[1];pts=[[x,y]];
+    for(j=0;j<45;j++){a+=(Math.random()-.5)*.7;x+=Math.cos(a)*4;y+=Math.sin(a)*4;pts.push([x,y]);if(x<0||y<0||x>W||y>H)break}
+    segs.push(pts);
+  }
+  shakeEl(mn);
+  (function step(){
+    var k=(performance.now()-t0)/1000,prog=Math.min(1,k/1.2);
+    fxx.clearRect(0,0,W,H);
+    if(k<.12){fxx.fillStyle="rgba(255,255,255,.8)";fxx.fillRect(0,0,W,H)}
+    if(k>.8&&!s2){s2=true;shakeEl(mn)}
+    fxx.fillStyle="#000";
+    segs.forEach(function(p){var n=Math.floor(p.length*prog),q;for(q=0;q<n;q++)fxx.fillRect(Math.round(p[q][0])+1,Math.round(p[q][1])+1,1,1)});
+    fxx.fillStyle="#fff";
+    segs.forEach(function(p){var n=Math.floor(p.length*prog),q;for(q=0;q<n;q++)fxx.fillRect(Math.round(p[q][0]),Math.round(p[q][1]),1,1)});
+    if(k>1.3&&!fell){
+      fell=true;
+      els.forEach(function(e,n){e.style.setProperty("--rot",(n%2?-1:1)*(6+n*4)+"deg");e.style.animationDelay=(n*0.15)+"s";e.classList.add("fall")});
+    }
+    if(k>3.3){
+      els.forEach(function(e){e.classList.remove("fall");e.style.animationDelay="";e.classList.add("back");setTimeout(function(){e.classList.remove("back")},700)});
+      fxx.clearRect(0,0,W,H);anim=false;wipe();say("The core collapsed and the world fell apart. You lost everything.");return;
+    }
+    requestAnimationFrame(step);
+  })();
+}
+function playWin(){
+  if(anim)return;
+  anim=true;
+  var v0=S.dust,g=v0*999,t0=performance.now(),parts=[],W=fxc.width,H=fxc.height,c0=ctr(),dr=$("dust").getBoundingClientRect(),tx=(dr.left+dr.width/2)/PX,ty=(dr.top+dr.height/2)/PX,prev=0;
+  state="heal";healT0=t0;setHint();shakeIt();
+  (function step(){
+    var k=(performance.now()-t0)/1000,e,add,i,p,a,s;
+    fxx.clearRect(0,0,W,H);
+    if(k<.15){fxx.fillStyle="rgba(255,246,200,.6)";fxx.fillRect(0,0,W,H)}
+    if(k>.3&&k<2.2){for(i=0;i<3;i++){a=Math.random()*6.283;s=1+Math.random()*3;parts.push({x:c0[0],y:c0[1],vx:Math.cos(a)*s,vy:Math.sin(a)*s})}}
+    for(i=parts.length-1;i>=0;i--){
+      p=parts[i];p.vx*=.92;p.vy*=.92;p.x+=p.vx+(tx-p.x)*.05;p.y+=p.vy+(ty-p.y)*.05;
+      fxx.fillStyle=(i%3)?"#ffd24a":"#fff6c8";fxx.fillRect(Math.round(p.x),Math.round(p.y),2,2);
+      if(Math.hypot(tx-p.x,ty-p.y)<3)parts.splice(i,1);
+    }
+    e=Math.min(1,Math.max(0,(k-.5)/2));e=e*e*(3-2*e);add=g*(e-prev);prev=e;S.dust+=add;S.total+=add;draw();
+    if(k>3.6){
+      if(prev<1){add=g*(1-prev);S.dust+=add;S.total+=add}
+      fxx.clearRect(0,0,W,H);anim=false;setHint();draw();
+      say("JACKPOT! ×1000. You now have "+fmt(S.dust)+" stardust!");return;
+    }
+    requestAnimationFrame(step);
+  })();
+}
+
+/* ---- the core gamble ---- */
+var gm=$("gamble"),busy=false;
+function openGamble(){
+  $("gstake").textContent=fmt(S.dust);$("gwin").textContent=fmt(S.dust*1000);$("godds").textContent=Math.round(ODDS*100)+"%";
+  $("gres").textContent="";gm.hidden=false;
+}
+$("gno").onclick=function(){if(!busy)gm.hidden=true};
+$("gyes").onclick=function(){
+  if(busy)return;busy=true;var n=0,tx=$("gres");
+  var iv=setInterval(function(){tx.textContent=["Rolling.","Rolling..","Rolling..."][n++%3]},250);
+  setTimeout(function(){
+    clearInterval(iv);busy=false;gm.hidden=true;
+    if(Math.random()<ODDS)playWin();
+    else playLose();
+  },1500);
+};
+function wipe(){
+  S=fresh();chunks=[];state="whole";hits=0;cracks=[];applyPlanet();AM=1;BF.ck=1;BF.cu=0;BF.pk=1;BF.pu=0;mi=0;setHint();save();draw();
+}
+
+var last=Date.now();
+function tick(){
+  var now=Date.now(),dt=Math.min((now-last)/1000,5);last=now;
+  var g=rate()*dt;S.dust+=g;S.total+=g;S.seen=now;extras(now);draw();
+}
+setInterval(tick,100);
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+setInterval(save,5000);
+window.addEventListener("pagehide",save);
+
+var mi=0;while(mi<MS.length&&S.total>=MS[mi][0])mi++;
+function extras(now){
+  if(BF.cu&&now>BF.cu){BF.ck=1;BF.cu=0}
+  if(BF.pu&&now>BF.pu){BF.pk=1;BF.pu=0}
+  var t=[];
+  if(BF.cu)t.push("Solar flare: clicks ×7, "+Math.ceil((BF.cu-now)/1000)+"s");
+  if(BF.pu)t.push("Dust storm: fleet ×3, "+Math.ceil((BF.pu-now)/1000)+"s");
+  $("buff").textContent=t.join("   ");
+  if(mi<MS.length&&S.total>=MS[mi][0]){say(MS[mi][1]);mi++}
+}
+var away=Math.min((Date.now()-S.seen)/1000,8*3600),r0=rate();
+if(away>60&&r0>0){var gain=r0*away*0.5;S.dust+=gain;S.total+=gain;say("Your fleet kept mining while you were away: +"+fmt(gain)+" stardust.")}
+
+/* ---- comets ---- */
+var EV=[
+ function(){var g=Math.max(rate()*90,50);S.dust+=g;S.total+=g;return "Stardust cloud! +"+fmt(g)},
+ function(){BF.ck=7;BF.cu=Date.now()+15000;return "Solar flare! Clicks ×7 for 15 seconds."},
+ function(){BF.pk=3;BF.pu=Date.now()+25000;return "Dust storm! Fleet output ×3 for 25 seconds."}
+];
+function cometSprite(){
+  var k=document.createElement("canvas"),x,i,w,y,cl=["#ffbe5c","#ff8a3d","#c4492f","#6e2a3a","#3a1a40"];
+  k.width=20;k.height=7;k.style.width="120px";k.style.height="42px";k.style.imageRendering="pixelated";
+  x=k.getContext("2d");
+  x.fillStyle="#fff6c8";x.fillRect(15,2,3,3);
+  x.fillStyle="#ffbe5c";x.fillRect(14,1,1,5);x.fillRect(18,3,1,1);
+  for(i=0;i<13;i++){w=i<5?3:i<9?2:1;y=3-(w>>1);if(i<4||i%2===0){x.fillStyle=cl[Math.min(4,i>>2)];x.fillRect(13-i,y,1,w)}}
+  return k;
+}
+function spawn(){
+  var c=document.createElement("button"),dur=9+Math.random()*4;
+  c.className="comet";c.setAttribute("aria-label","Catch the comet");c.appendChild(cometSprite());
+  c.style.top=(10+Math.random()*50)+"%";c.style.animationDuration=dur+"s";
+  c.onclick=function(){say(EV[Math.floor(Math.random()*EV.length)]());c.remove();draw()};
+  document.body.appendChild(c);
+  setTimeout(function(){c.remove()},dur*1000+500);
+}
+(function sched(){setTimeout(function(){spawn();sched()},25000+Math.random()*35000)})();
+setTimeout(spawn,8000);
+
+/* ---- secret admin panel ---- */
+var adm=$("admin"),ab=$("adm");
+function abtn(label,fn){var b=document.createElement("button");b.className="btn";b.style.minWidth="0";b.textContent=label;b.onclick=function(){fn();draw()};ab.appendChild(b)}
+[1e3,1e6,1e9,1e12,1e15].forEach(function(v){abtn("+"+fmt(v)+" stardust",function(){S.dust+=v})});
+abtn("Double stardust",function(){S.dust*=2});
+GENS.forEach(function(g,i){abtn("+10 "+g.n,function(){S.own[i]+=10})});
+abtn("Unlock all research",function(){UPS.forEach(function(u){if(!has(u.id))S.up.push(u.id)})});
+abtn("Upgrade everything",function(){GENS.forEach(function(g,i){S.own[i]+=10});UPS.forEach(function(u){if(!has(u.id))S.up.push(u.id)});say("Everything upgraded.")});ab.lastChild.style.gridColumn="1 / -1";
+abtn("Spawn a comet",function(){spawn()});
+abtn("Next planet",function(){$("next").onclick()});
+abtn("Go to planet 199",function(){S.planet=199;chunks=[];state="whole";hits=0;cracks=[];applyPlanet();setHint()});
+abtn("Go to planet 200",function(){S.planet=200;chunks=[];state="whole";hits=0;cracks=[];applyPlanet();setHint()});
+function jumpTo(n){S.planet=Math.max(1,Math.min(200,n));chunks=[];state="whole";hits=0;cracks=[];applyPlanet();setHint();say("Jumped to "+pname(S.planet)+".")}
+abtn("Planet -10",function(){jumpTo(S.planet-10)});
+abtn("Planet +10",function(){jumpTo(S.planet+10)});
+abtn("Planet +50",function(){jumpTo(S.planet+50)});
+abtn("Back to planet 1",function(){jumpTo(1)});
+abtn("Break this planet",function(){if(state==="whole"){hits=HP;crack()}});
+abtn("Smash all shards",function(){while(chunks.length)smash(chunks[0])});
+abtn("Open the core",function(){if(state!=="whole")openGamble();else say("Break the planet first.")});
+abtn("Gamble odds 50%",function(){ODDS=0.5;say("Gamble odds set to 50%.")});
+abtn("Gamble odds 100%",function(){ODDS=1;say("Gamble odds set to 100%.")});
+abtn("Gamble odds 5%",function(){ODDS=0.05;say("Gamble odds back to 5%.")});
+abtn("Click power x10",function(){AM*=10;say("Click power x"+fmt(AM)+" from admin.")});
+abtn("Reset click power",function(){AM=1;say("Admin click power reset.")});
+abtn("Solar flare 60s",function(){BF.ck=7;BF.cu=Date.now()+60000});
+abtn("Dust storm 60s",function(){BF.pk=3;BF.pu=Date.now()+60000});
+abtn("Stardust x10",function(){S.dust*=10});
+abtn("Add 1000 clicks",function(){S.clicks+=1000});
+abtn("Clear fleet",function(){S.own=GENS.map(function(){return 0})});
+function ahd(t){var d=document.createElement("div");d.textContent=t;d.style.cssText="grid-column:1/-1;color:var(--gold);margin-top:8px";ab.appendChild(d)}
+function income(s){return function(){var g=rate()*s;S.dust+=g;S.total+=g}}
+var ACI=0;
+function autoClick(){
+  var rc=AR.getBoundingClientRect(),x=C,y=C,c;
+  if(state!=="whole"){c=chunks.filter(function(q){return Math.hypot(q.x-C,q.y-C)>10})[0];if(!c)return;x=c.x;y=c.y}
+  AR.dispatchEvent(new PointerEvent("pointerdown",{clientX:rc.left+x/SZ*rc.width,clientY:rc.top+y/SZ*rc.height,bubbles:true}));
+}
+function setAuto(n){clearInterval(ACI);ACI=0;if(n)ACI=setInterval(autoClick,1000/n);say(n?"Auto-clicker: "+n+" per second.":"Auto-clicker off.")}
+ahd("MONEY");
+[1e18,1e21,1e24].forEach(function(v){abtn("+"+fmt(v),function(){S.dust+=v})});
+abtn("Halve stardust",function(){S.dust/=2});
+abtn("Set stardust to 0",function(){S.dust=0});
+abtn("1 hour of income",income(3600));
+abtn("1 day of income",income(86400));
+abtn("1 week of income",income(604800));
+ahd("FLEET");
+abtn("+100 each",function(){S.own=S.own.map(function(v){return v+100})});
+abtn("+1000 each",function(){S.own=S.own.map(function(v){return v+1000})});
+abtn("Double each",function(){S.own=S.own.map(function(v){return v*2})});
+abtn("-10 each",function(){S.own=S.own.map(function(v){return Math.max(0,v-10)})});
+ahd("RESEARCH");
+abtn("Lock all research",function(){S.up=[]});
+abtn("Random research",function(){var l=UPS.filter(function(u){return !has(u.id)});if(l.length)S.up.push(l[Math.floor(Math.random()*l.length)].id)});
+ahd("PLANETS AND SHARDS");
+abtn("Planet +100",function(){jumpTo(S.planet+100)});
+abtn("Planet 100",function(){jumpTo(100)});
+abtn("Random planet",function(){jumpTo(1+Math.floor(Math.random()*200))});
+abtn("Reset planet hits",function(){if(state==="whole"){hits=0;cracks=[];setHint()}});
+abtn("Spawn 5 big shards",function(){if(state==="whole"){hits=need();crack()}else for(var i=0;i<5;i++)chunks.push(mk(C,C,Math.random()*3-1.5,Math.random()*3-1.5,12))});
+abtn("Spawn 20 small shards",function(){if(state==="whole"){hits=need();crack()}for(var i=0;i<20;i++)chunks.push(mk(C,C,Math.random()*3-1.5,Math.random()*3-1.5,5.5))});
+abtn("Clear shards (no pay)",function(){if(state!=="whole"){chunks=[];state="whole";hits=0;cracks=[];applyPlanet();setHint()}});
+abtn("Shake planet",function(){shakeIt()});
+ahd("CORE AND GAMBLE");
+abtn("Odds 0%",function(){ODDS=0;say("Gamble odds set to 0%.")});
+abtn("Odds 1%",function(){ODDS=0.01;say("Gamble odds set to 1%.")});
+abtn("Odds 25%",function(){ODDS=0.25;say("Gamble odds set to 25%.")});
+abtn("Win gamble now",function(){playWin()});
+abtn("Lose gamble now",function(){playLose()});
+ahd("AUTO-CLICKER");
+abtn("5 per second",function(){setAuto(5)});
+abtn("20 per second",function(){setAuto(20)});
+abtn("50 per second",function(){setAuto(50)});
+abtn("Turn off",function(){setAuto(0)});
+ahd("EXTRAS");
+abtn("Spawn 5 comets",function(){for(var i=0;i<5;i++)setTimeout(spawn,i*700)});
+abtn("Clear buffs",function(){BF.ck=1;BF.cu=0;BF.pk=1;BF.pu=0});
+abtn("Next transmission",function(){if(mi<MS.length){say(MS[mi][1]);mi++}else say("No more transmissions.")});
+abtn("Show stats",function(){say("Planet "+S.planet+" · clicks "+fmt(S.clicks)+" · all-time "+fmt(S.total))});
+abtn("Toggle theme",function(){var r=document.documentElement;r.setAttribute("data-theme",r.getAttribute("data-theme")==="dark"?"light":"dark")});
+abtn("Save now",function(){save();say("Saved.")});
+abtn("Copy save",function(){try{navigator.clipboard.writeText(JSON.stringify(S));say("Save copied.")}catch(e){say("Copy was blocked.")}});
+abtn("Reset admin tweaks",function(){AM=1;ODDS=0.05;setAuto(0)});
+abtn("Wipe everything",function(){wipe()});
+var ox=0,oy=0,drag=null,abox=adm.querySelector(".box"),ah=$("ahead");
+ah.addEventListener("pointerdown",function(e){drag={x:e.clientX-ox,y:e.clientY-oy};ah.setPointerCapture(e.pointerId)});
+ah.addEventListener("pointermove",function(e){
+  if(!drag)return;
+  ox=Math.max(-innerWidth/2,Math.min(innerWidth/2,e.clientX-drag.x));
+  oy=Math.max(-innerHeight/2,Math.min(innerHeight/2,e.clientY-drag.y));
+  abox.style.transform="translate("+ox+"px,"+oy+"px)";
+});
+ah.addEventListener("pointerup",function(){drag=null});
+$("aclose").onclick=function(){adm.hidden=true};
+var taps=0,tapT,typed="";
+document.querySelector("h1").addEventListener("click",function(){
+  taps++;clearTimeout(tapT);tapT=setTimeout(function(){taps=0},1500);
+  if(taps>=5){taps=0;adm.hidden=false}
+});
+var lp,hd=document.querySelector("h1"),fn=0,fT;
+hd.style.touchAction="manipulation";hd.style.userSelect="none";hd.style.webkitUserSelect="none";
+hd.addEventListener("pointerdown",function(){clearTimeout(lp);lp=setTimeout(function(){adm.hidden=false},1500)});
+["pointerup","pointerleave","pointercancel"].forEach(function(ev){hd.addEventListener(ev,function(){clearTimeout(lp)})});
+hd.addEventListener("contextmenu",function(e){e.preventDefault()});
+$("fnote").addEventListener("click",function(){fn++;clearTimeout(fT);fT=setTimeout(function(){fn=0},1500);if(fn>=5){fn=0;adm.hidden=false}});
+addEventListener("keydown",function(e){
+  if(e.key==="Escape"){adm.hidden=true;return}
+  if(e.key&&e.key.length===1){typed=(typed+e.key.toLowerCase()).slice(-5);if(typed==="admin"){typed="";adm.hidden=false}}
+});
+
+var armed=false,rb=$("reset");
+rb.onclick=function(){
+  if(!armed){armed=true;rb.textContent="Click again to erase everything";setTimeout(function(){armed=false;rb.textContent="Reset game"},3000);return}
+  armed=false;rb.textContent="Reset game";wipe();
+};
+
+/* ---- starfield ---- */
+var cv=$("sky"),cx=cv.getContext("2d"),stars=[],W=0,H=0,col="#f1ead8",frame=0;
+var calm=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+function size(){W=cv.width=innerWidth;H=cv.height=innerHeight;stars=[];var n=Math.round(W*H/9000);
+  for(var i=0;i<n;i++)stars.push({x:Math.random()*W,y:Math.random()*H,z:Math.random()*0.9+0.1})}
+addEventListener("resize",size);size();
+function sky(t){
+  if(frame++%60===0){col=getComputedStyle(document.documentElement).getPropertyValue("--star").trim()||col}
+  cx.clearRect(0,0,W,H);cx.fillStyle=col;
+  var boost=1+Math.min(Math.log10(1+rate())*0.4,3);
+  for(var i=0;i<stars.length;i++){var s=stars[i];
+    if(!calm){s.y+=s.z*0.15*boost;if(s.y>H){s.y=0;s.x=Math.random()*W}}
+    cx.globalAlpha=0.3+s.z*0.6;var q=s.z>0.6?4:3;cx.fillRect(Math.round(s.x/3)*3,Math.round(s.y/3)*3,q,q)}
+  cx.globalAlpha=1;arenaFrame(t);requestAnimationFrame(sky);
+}
+requestAnimationFrame(sky);
+setHint();draw();
+})();
+</script>
+</body>
+</html>
